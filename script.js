@@ -359,7 +359,39 @@ function updateQuickStats() {
   const n = Array.isArray(filteredData) ? filteredData.length : 0;
   if (rowsEl) rowsEl.textContent = String(n);
 
-  // ===== Column indexes (English + Khmer) =====
+  // ✅ Detect Summary sheet
+  const isSummary = String(currentSheetName || "").toLowerCase().includes("summary");
+
+  // =========================================================
+  // ✅ Summary Sheet (Guaranteed by fixed column positions)
+  // A:ID B:First C:Last D:Gender E:Position
+  // F:Total Scan  G:Total Forget Scan  H:Total Permission  I:Total Mission
+  // =========================================================
+  if (isSummary) {
+    let totalScan = 0;
+    let totalForget = 0;
+    let totalPermission = 0;
+    let totalMission = 0;
+
+    (filteredData || []).forEach((r) => {
+      const row = Array.isArray(r) ? r : [];
+      totalScan += toNumber(row[5]);       // F
+      totalForget += toNumber(row[6]);     // G
+      totalPermission += toNumber(row[7]); // H
+      totalMission += toNumber(row[8]);    // I
+    });
+
+    if (scanEl) scanEl.textContent = String(totalScan);
+    if (forgetEl) forgetEl.textContent = String(totalForget);
+    if (permEl) permEl.textContent = String(totalPermission);
+    if (missionEl) missionEl.textContent = String(totalMission);
+
+    return; // ✅ Stop here for Summary sheet
+  }
+
+  // =========================================================
+  // ✅ Day Sheets (Find by headers + fallback P/M in Remark)
+  // =========================================================
   const scanIdx = findHeaderIndex([
     "TOTAL SCAN", "TOTALSCAN", "SCAN",
     "សរុបស្កេន", "សរុប ស្កេន"
@@ -375,14 +407,11 @@ function updateQuickStats() {
     "សរុបអនុញ្ញាត", "សរុប អនុញ្ញាត", "អនុញ្ញាត", "ច្បាប់"
   ]);
 
-  // Mission header in your sheet might be "សរុបបេសកកម្ម" OR just "បេសកកម្ម"
   const missionIdx = findHeaderIndex([
     "TOTAL MISSION", "MISSION",
-    "សរុបបេសកកម្ម", "សរុប បេសកកម្ម",
-    "បេសកកម្ម"
+    "សរុបបេសកកម្ម", "សរុប បេសកកម្ម", "បេសកកម្ម"
   ]);
 
-  // For daily sheets fallback (P/M stored in Remark col Q)
   const remarkIdx = findHeaderIndex([
     "REMARK", "STATUS", "NOTE", "COMMENT", "Q",
     "សម្គាល់", "ចំណាំ"
@@ -396,14 +425,13 @@ function updateQuickStats() {
   (filteredData || []).forEach((r) => {
     const row = Array.isArray(r) ? r : [];
 
+    // Numeric columns (if present)
     if (scanIdx !== -1) totalScan += toNumber(row[scanIdx]);
     if (forgetIdx !== -1) totalForget += toNumber(row[forgetIdx]);
-
-    // Summary sheet numeric columns
     if (permIdx !== -1) totalPermission += toNumber(row[permIdx]);
     if (missionIdx !== -1) totalMission += toNumber(row[missionIdx]);
 
-    // Daily fallback: P/M in remark
+    // Fallback: P/M stored in Remark (Permission/Mission)
     if (remarkIdx !== -1) {
       const mark = String(row[remarkIdx] ?? "").trim().toUpperCase();
       if (permIdx === -1 && mark === "P") totalPermission += 1;
@@ -416,9 +444,6 @@ function updateQuickStats() {
   if (permEl) permEl.textContent = String(totalPermission);
   if (missionEl) missionEl.textContent = String(totalMission);
 }
-
-
-
 
 
 
