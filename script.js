@@ -462,6 +462,34 @@ function findHeaderIndex(keys) {
 }
 
 
+function findAllHeaderIndexes(keys) {
+  if (!Array.isArray(headerRow)) return [];
+
+  const H = headerRow.map((h) => norm(h));
+  const idxs = [];
+
+  for (const k of keys) {
+    const kk = norm(k);
+    for (let i = 0; i < H.length; i++) {
+      const h = H[i];
+
+      if (h === kk || h.includes(kk)) {
+        idxs.push(i);
+        continue;
+      }
+
+      const kk2 = kk.replace(/\s+/g, "");
+      const h2 = h.replace(/\s+/g, "");
+      if (h2 === kk2 || h2.includes(kk2)) idxs.push(i);
+    }
+  }
+
+  return Array.from(new Set(idxs)); // unique
+}
+
+
+
+
 function toNumber(v) {
   const s = String(v ?? "").trim().replace(/,/g, "").replace(/[^\d.-]/g, "");
   const n = Number(s);
