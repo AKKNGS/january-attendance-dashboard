@@ -220,33 +220,89 @@ function renderUI(rows) {
   const safeHeaders = Array.isArray(headerRow) ? headerRow : [];
   const safeRows = Array.isArray(rows) ? rows : [];
 
+  // Pagination
   const totalPages = Math.max(1, Math.ceil(safeRows.length / pageSize));
   if (currentPage > totalPages) currentPage = totalPages;
 
   const start = (currentPage - 1) * pageSize;
   const pageRows = safeRows.slice(start, start + pageSize);
 
+  // Detect key columns
+  const remarkIdx = findHeaderIndex(["REMARK", "NOTE", "STATUS", "Q"]);
+  const timeIdxs = findAllHeaderIndexes([
+    "CHECK IN", "CHECK OUT", "CLOCK IN", "CLOCK OUT", "TIME IN", "TIME OUT"
+  ]);
+
+  // Header
   thead.innerHTML =
     "<tr>" +
     safeHeaders.map((h) => `<th>${escapeHtml(String(h ?? ""))}</th>`).join("") +
     "</tr>";
 
+  // Body
   const bodyHTML = pageRows
     .map((r) => {
       const row = Array.isArray(r) ? r : [];
-      const tds = safeHeaders.map((_, i) => `<td>${escapeHtml(String(row[i] ?? ""))}</td>`).join("");
-      return `<tr>${tds}</tr>`;
+
+      const remarkRaw = remarkIdx !== -1 ? String(row[remarkIdx] ?? "").trim().toUpperCase() : "";
+      const rowClass =
+        remarkRaw === "P" ? "row-permission" :
+        remarkRaw === "M" ? "row-mission" : "";
+
+      const tds = safeHeaders.map((_, i) => {
+        const value = String(row[i] ?? "").trim();
+
+        // If this is remark column, show badge
+        if (i === remarkIdx) {
+          if (remarkRaw === "P") {
+            return `<td><span class="badge-remark badge-permission">Permission</span></td>`;
+          }
+          if (remarkRaw === "M") {
+            return `<td><span class="badge-remark badge-mission">Mission</span></td>`;
+          }
+          return `<td>${escapeHtml(value)}</td>`;
+        }
+
+        // Highlight missing times for time-related columns
+        const isTimeCol = timeIdxs.includes(i);
+        if (isTimeCol && value === "") {
+          return `<td class="missing-time" title="Missing time">—</td>`;
+        }
+
+        return `<td title="${escapeHtml(value)}">${escapeHtml(value)}</td>`;
+      }).join("");
+
+      return `<tr class="${rowClass}">${tds}</tr>`;
     })
     .join("");
 
   tbody.innerHTML = bodyHTML || `<tr><td class="text-center text-muted" colspan="50">គ្មានទិន្នន័យ</td></tr>`;
 
+  // Footer info
   const info = document.getElementById("tableInfo");
   if (info) info.textContent = `${safeRows.length} rows • page ${currentPage} / ${totalPages}`;
 
   const pill = document.getElementById("pagePill");
   if (pill) pill.textContent = `${currentPage} / ${totalPages}`;
 }
+
+/* Helper: find multiple header indexes */
+function findAllHeaderIndexes(keys) {
+  if (!Array.isArray(headerRow)) return [];
+  const H = headerRow.map((h) => String(h ?? "").trim().toUpperCase());
+  const idxs = [];
+
+  keys.forEach((k) => {
+    const kk = String(k).trim().toUpperCase();
+    H.forEach((h, i) => {
+      if (h === kk || h.includes(kk)) idxs.push(i);
+    });
+  });
+
+  // unique
+  return Array.from(new Set(idxs));
+}
+
 
 /* =========================================================
    Filter + Sort
@@ -285,27 +341,39 @@ function sortByBestNameCol(asc = true) {
    Stats
    ========================================================= */
 function updateQuickStats() {
-  document.getElementById("statRows").textContent = String(filteredData.length);
+  const rowsEl = document.getElementById("statRows");
+  const scanEl = document.getElementById("statTotalScan");
+  const permEl = document.getElementById("statTotalPermission");
+  const laEl = document.getElementById("statLateAbsent");
+
+  if (rowsEl) rowsEl.textContent = String(filteredData.length);
 
   const scanIdx = findHeaderIndex(["TOTAL SCAN", "SCAN", "TOTALSCAN"]);
-  const permIdx = findHeaderIndex(["TOTAL PERMISSION", "PERMISSION", "LEAVE", "PERM"]);
-  const lateIdx = findHeaderIndex(["LATE", "ABSENT", "អវត្តមាន", "យឺត"]);
+  const remarkIdx = findHeaderIndex(["REMARK", "NOTE", "STATUS", "Q"]);
 
-  let totalScan = 0, totalPerm = 0, lateCount = 0;
+  let totalScan = 0;
+  let totalPermission = 0;
+  let totalMission = 0;
 
   filteredData.forEach((r) => {
     if (scanIdx !== -1) totalScan += toNumber((r || [])[scanIdx]);
-    if (permIdx !== -1) totalPerm += toNumber((r || [])[permIdx]);
-    if (lateIdx !== -1) {
-      const v = String((r || [])[lateIdx] ?? "").trim();
-      if (v && v !== "0") lateCount += 1;
+
+    if (remarkIdx !== -1) {
+      const mark = String((r || [])[remarkIdx] ?? "").trim().toUpperCase();
+      if (mark === "P") totalPermission++;
+      if (mark === "M") totalMission++;
     }
   });
 
-  document.getElementById("statTotalScan").textContent = String(totalScan || 0);
-  document.getElementById("statTotalPermission").textContent = String(totalPerm || 0);
-  document.getElementById("statLateAbsent").textContent = lateIdx !== -1 ? String(lateCount) : "-";
+  if (scanEl) scanEl.textContent = String(totalScan || 0);
+
+  // Show Permission in the existing box
+  if (permEl) permEl.textContent = String(totalPermission);
+
+  // Use the Late/Absent box to show Mission if you want (or rename in HTML)
+  if (laEl) laEl.textContent = `Mission: ${totalMission}`;
 }
+
 
 /* =========================================================
    Print (simple)
