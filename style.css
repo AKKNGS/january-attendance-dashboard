@@ -115,3 +115,45 @@ td{
   text-align: center;
 }
 .loader-text{ font-weight: 800; }
+
+
+/* ===== Enhancements: highlights ===== */
+
+/* Missing time cells */
+td.missing-time {
+  background: #ffebee;        /* light red */
+  color: #b71c1c;
+  font-weight: 700;
+}
+
+/* Permission row */
+tr.row-permission td {
+  background: #e8f5e9;        /* light green */
+}
+
+/* Mission row */
+tr.row-mission td {
+  background: #fff8e1;        /* light yellow */
+}
+
+/* Remark badges */
+.badge-remark {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 800;
+  border: 1px solid #ddd;
+}
+
+.badge-permission {
+  background: #e8f5e9;
+  color: #1b5e20;
+  border-color: #c8e6c9;
+}
+
+.badge-mission {
+  background: #fff8e1;
+  color: #e65100;
+  border-color: #ffe0b2;
+}
