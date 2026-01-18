@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="km">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes" />
+  <title>របាយការណ៍វត្តមាន (Mobile Friendly)</title>
+
+  <!-- Bootstrap 4 -->
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" />
+
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"/>
+
+  <!-- Khmer Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Khmer:wght@400;700&family=Moul&display=swap" rel="stylesheet" />
+
+  <link rel="stylesheet" href="./style.css" />
+</head>
+
+<body>
+  <!-- Loader -->
+  <div id="appLoader" class="app-loader d-none">
+    <div class="loader-card">
+      <div class="spinner-border" role="status" aria-label="Loading"></div>
+      <div class="loader-text mt-3" id="loaderText">កំពុងដំណើរការ...</div>
+    </div>
+  </div>
+
+  <!-- Top Header -->
+  <header class="topbar">
+    <div class="container-fluid d-flex align-items-center justify-content-between">
+      <div class="brand">
+        <div class="brand-title">📌 របាយការណ៍វត្តមាន</div>
+        <div class="brand-sub" id="printMonthYear">ខែមករា ឆ្នាំ ២០២៦</div>
+      </div>
+
+      <div class="topbar-actions">
+        <select id="sheetSelect" class="form-control form-control-sm">
+          <option value="">កំពុងផ្ទុក...</option>
+        </select>
+      </div>
+    </div>
+  </header>
+
+  <!-- Mobile header (optional) -->
+  <div class="mobile-header d-md-none">
+    <h1>របាយការណ៍វត្តមាន</h1>
+    <div class="sub" id="summaryMonthYear">ខែមករា ឆ្នាំ ២០២៦</div>
+  </div>
+
+  <!-- MAIN: Dashboard -->
+  <main class="container-fluid mt-3" id="mainDashboard">
+    <div class="row">
+      <div class="col-lg-4 mb-3">
+        <div class="card soft-card">
+          <div class="card-body">
+            <div class="section-title">
+              <i class="fa-solid fa-filter"></i> ស្វែងរក / តម្រង
+            </div>
+
+            <div class="form-group mb-2">
+              <label class="small text-muted mb-1">Search (Name/ID/Any text)</label>
+              <input id="searchInput" type="text" class="form-control" placeholder="វាយអក្សរ ដើម្បីស្វែងរក..." />
+            </div>
+
+            <div class="form-row">
+              <div class="col-6 mb-2">
+                <button id="btnClearFilter" class="btn btn-light btn-block">
+                  <i class="fa-solid fa-eraser"></i> Clear
+                </button>
+              </div>
+              <div class="col-6 mb-2">
+                <button id="btnPrint" class="btn btn-primary btn-block">
+                  <i class="fa-solid fa-print"></i> Print
+                </button>
+              </div>
+            </div>
+
+            <div class="hint mt-2">
+              ✅ Mobile: អាច swipe ទៅឆ្វេង/ស្តាំលើតារាង
+            </div>
+          </div>
+        </div>
+
+        <div class="card soft-card mt-3">
+          <div class="card-body">
+            <div class="section-title">
+              <i class="fa-solid fa-chart-simple"></i> Quick Stats
+            </div>
+
+            <div class="stats-grid">
+              <div class="stat">
+                <div class="stat-label">Rows</div>
+                <div class="stat-value" id="statRows">0</div>
+              </div>
+              <div class="stat">
+                <div class="stat-label">Total Scan</div>
+                <div class="stat-value" id="statTotalScan">0</div>
+              </div>
+              <div class="stat">
+                <div class="stat-label">Total Permission</div>
+                <div class="stat-value" id="statTotalPermission">0</div>
+              </div>
+              <div class="stat">
+                <div class="stat-label">Late/Absent</div>
+                <div class="stat-value" id="statLateAbsent">-</div>
+              </div>
+            </div>
+
+            <div class="small text-muted mt-2">
+              * Stats គណនាតាម column ដែលឃើញ (Total Scan, Total Permission, Late/Absent…)
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-lg-8 mb-3">
+        <div class="card soft-card">
+          <div class="card-body">
+            <div class="d-flex align-items-center justify-content-between flex-wrap">
+              <div class="section-title mb-2 mb-md-0">
+                <i class="fa-solid fa-table"></i> តារាងទិន្នន័យ
+              </div>
+
+              <div class="table-tools">
+                <button id="btnSortAtoZ" class="btn btn-sm btn-outline-secondary">
+                  <i class="fa-solid fa-arrow-down-a-z"></i> Sort A→Z
+                </button>
+                <button id="btnSortZtoA" class="btn btn-sm btn-outline-secondary">
+                  <i class="fa-solid fa-arrow-down-z-a"></i> Sort Z→A
+                </button>
+              </div>
+            </div>
+
+            <div class="table-responsive mt-3">
+              <table class="table table-hover table-bordered table-sm" id="dataTable">
+                <thead id="dataThead"></thead>
+                <tbody id="dataTbody">
+                  <tr>
+                    <td class="text-center text-muted" colspan="50">កំពុងទាញទិន្នន័យ...</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div class="d-flex align-items-center justify-content-between mt-2 flex-wrap">
+              <div class="small text-muted" id="tableInfo">0 rows</div>
+
+              <div class="pagination-controls">
+                <button class="btn btn-sm btn-light" id="btnPrevPage">
+                  <i class="fa-solid fa-chevron-left"></i>
+                </button>
+                <span class="page-pill" id="pagePill">1 / 1</span>
+                <button class="btn btn-sm btn-light" id="btnNextPage">
+                  <i class="fa-solid fa-chevron-right"></i>
+                </button>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Summary Stats Page -->
+  <section class="summary-page" id="summaryStatsPage">
+    <div class="container-fluid pt-3 pb-5">
+      <div class="summary-header">
+        <div>
+          <div class="summary-title">📊 ស្ថិតិសរុប</div>
+          <div class="summary-sub" id="summaryMonthYear2">ខែមករា ឆ្នាំ ២០២៦</div>
+        </div>
+        <button class="btn btn-light" id="btnBackToDashboard">
+          <i class="fa-solid fa-arrow-left"></i> ត្រឡប់
+        </button>
+      </div>
+
+      <div class="row mt-3">
+        <div class="col-md-3 mb-3">
+          <div class="card soft-card">
+            <div class="card-body">
+              <div class="kpi-label">Total Rows</div>
+              <div class="kpi-value" id="kpiRows">0</div>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-3 mb-3">
+          <div class="card soft-card">
+            <div class="card-body">
+              <div class="kpi-label">Total Scan</div>
+              <div class="kpi-value" id="kpiScan">0</div>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-3 mb-3">
+          <div class="card soft-card">
+            <div class="card-body">
+              <div class="kpi-label">Total Permission</div>
+              <div class="kpi-value" id="kpiPermission">0</div>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-3 mb-3">
+          <div class="card soft-card">
+            <div class="card-body">
+              <div class="kpi-label">Detected Late/Absent</div>
+              <div class="kpi-value" id="kpiLateAbsent">-</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card soft-card mt-2">
+        <div class="card-body">
+          <div class="section-title"><i class="fa-solid fa-circle-info"></i> ព័ត៌មានបន្ថែម</div>
+          <div class="small text-muted mt-2" id="summaryExplain">
+            Stats នេះគណនាតាមក្បាល column ដែលស្គាល់ (Total Scan, Total Permission, Late/Absent…)។ ប្រសិនបើឈ្មោះ column ខុស អ្នកអាចប្ដូរ keyword នៅក្នុង script.js។
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Teacher Summary Modal -->
+  <div class="modal-overlay" id="teacherSummaryModal">
+    <div class="modal-sheet">
+      <div class="modal-head">
+        <div class="modal-title">
+          <i class="fa-solid fa-users"></i> Teacher Summary
+        </div>
+        <button class="btn btn-sm btn-light" onclick="closeTeacherSummary()">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <div class="table-responsive">
+          <table class="table table-bordered table-sm" id="teacherSummaryTable">
+            <thead></thead>
+            <tbody id="teacherSummaryBody">
+              <tr><td class="text-center text-muted" colspan="50">កំពុងទាញទិន្នន័យ...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="modal-foot">
+        <button class="btn btn-light" onclick="closeTeacherSummary()">
+          បិទ
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bottom Navigation -->
+  <nav class="bottom-nav">
+    <button class="nav-item active" id="navDashboard">
+      <i class="fa-solid fa-house"></i>
+      <span>Dashboard</span>
+    </button>
+    <button class="nav-item" id="navStats">
+      <i class="fa-solid fa-chart-pie"></i>
+      <span>Stats</span>
+    </button>
+    <button class="nav-item" id="navTeacherSummary">
+      <i class="fa-solid fa-people-group"></i>
+      <span>Summary</span>
+    </button>
+  </nav>
+
+  <script src="./script.js"></script>
+</body>
+</html>
