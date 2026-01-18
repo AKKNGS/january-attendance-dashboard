@@ -147,6 +147,39 @@ function showMobileOptimizations() {
   );
 }
 
+
+export default async function handler(req, res) {
+  try {
+    const GAS = process.env.GAS_WEBAPP_URL;
+    if (!GAS) {
+      return res.status(500).json({ error: "Missing env: GAS_WEBAPP_URL" });
+    }
+
+    const name = req.query?.name;
+    if (!name) return res.status(400).json({ error: "Missing query: name" });
+
+    const url = `${GAS}?action=sheet&name=${encodeURIComponent(name)}`;
+    const r = await fetch(url);
+    const text = await r.text();
+
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    res.setHeader("Access-Control-Allow-Methods", "GET,OPTIONS");
+    res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+
+    if (!r.ok) {
+      return res.status(r.status).json({ error: "Upstream error", detail: text });
+    }
+
+    const data = JSON.parse(text);
+    return res.status(200).json(data);
+  } catch (err) {
+    return res.status(500).json({ error: String(err?.message || err) });
+  }
+}
+
+
+
+
 /* =========================================================
    Event listeners
    ========================================================= */
@@ -445,6 +478,39 @@ function loadSummarySheetData() {
 
   tbody.innerHTML = rowsHTML || '<tr><td colspan="50" class="text-center">គ្មានទិន្នន័យ</td></tr>';
 }
+
+export default async function handler(req, res) {
+  try {
+    const GAS = process.env.GAS_WEBAPP_URL;
+    if (!GAS) {
+      return res.status(500).json({ error: "Missing env: GAS_WEBAPP_URL" });
+    }
+
+    const url = `${GAS}?action=sheets`;
+    const r = await fetch(url);
+    const text = await r.text();
+
+    // Allow frontend to call this API
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    res.setHeader("Access-Control-Allow-Methods", "GET,OPTIONS");
+    res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+
+    if (!r.ok) {
+      return res.status(r.status).json({ error: "Upstream error", detail: text });
+    }
+
+    // text should be JSON
+    const data = JSON.parse(text);
+    return res.status(200).json(data);
+  } catch (err) {
+    return res.status(500).json({ error: String(err?.message || err) });
+  }
+}
+
+
+
+
+
 
 /* =========================================================
    Render main table + pagination
