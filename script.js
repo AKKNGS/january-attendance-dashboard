@@ -352,16 +352,22 @@ function sortByBestNameCol(asc = true) {
 function updateQuickStats() {
   const rowsEl = document.getElementById("statRows");
   const scanEl = document.getElementById("statTotalScan");
+  const forgetEl = document.getElementById("statTotalForgetScan");
   const permEl = document.getElementById("statTotalPermission");
   const missionEl = document.getElementById("statTotalMission");
 
   const n = Array.isArray(filteredData) ? filteredData.length : 0;
   if (rowsEl) rowsEl.textContent = String(n);
 
-  // ====== IMPORTANT: Khmer + English keys ======
+  // ===== Column indexes (English + Khmer) =====
   const scanIdx = findHeaderIndex([
     "TOTAL SCAN", "TOTALSCAN", "SCAN",
     "សរុបស្កេន", "សរុប ស្កេន"
+  ]);
+
+  const forgetIdx = findHeaderIndex([
+    "TOTAL FORGET SCAN", "FORGET SCAN", "FORGETSCAN",
+    "សរុបភ្លេចស្កេន", "សរុប ភ្លេចស្កេន", "ភ្លេចស្កេន"
   ]);
 
   const permIdx = findHeaderIndex([
@@ -369,21 +375,21 @@ function updateQuickStats() {
     "សរុបអនុញ្ញាត", "សរុប អនុញ្ញាត", "អនុញ្ញាត", "ច្បាប់"
   ]);
 
+  // Mission header in your sheet might be "សរុបបេសកកម្ម" OR just "បេសកកម្ម"
   const missionIdx = findHeaderIndex([
     "TOTAL MISSION", "MISSION",
-    "សរុបបេសកកម្ម", "សរុប បេសកកម្ម", "បេសកកម្ម"
+    "សរុបបេសកកម្ម", "សរុប បេសកកម្ម",
+    "បេសកកម្ម"
   ]);
 
+  // For daily sheets fallback (P/M stored in Remark col Q)
   const remarkIdx = findHeaderIndex([
     "REMARK", "STATUS", "NOTE", "COMMENT", "Q",
     "សម្គាល់", "ចំណាំ"
   ]);
 
-  // ✅ Debug: see which columns were found
-  console.log("STATS IDX => scan:", scanIdx, "perm:", permIdx, "mission:", missionIdx, "remark:", remarkIdx);
-  console.log("HEADER ROW =>", headerRow);
-
   let totalScan = 0;
+  let totalForget = 0;
   let totalPermission = 0;
   let totalMission = 0;
 
@@ -391,13 +397,14 @@ function updateQuickStats() {
     const row = Array.isArray(r) ? r : [];
 
     if (scanIdx !== -1) totalScan += toNumber(row[scanIdx]);
+    if (forgetIdx !== -1) totalForget += toNumber(row[forgetIdx]);
 
-    // Summary sheet: Permission/Mission are numeric columns
+    // Summary sheet numeric columns
     if (permIdx !== -1) totalPermission += toNumber(row[permIdx]);
     if (missionIdx !== -1) totalMission += toNumber(row[missionIdx]);
 
-    // Daily sheet fallback: P/M stored in Remark
-    if ((permIdx === -1 || missionIdx === -1) && remarkIdx !== -1) {
+    // Daily fallback: P/M in remark
+    if (remarkIdx !== -1) {
       const mark = String(row[remarkIdx] ?? "").trim().toUpperCase();
       if (permIdx === -1 && mark === "P") totalPermission += 1;
       if (missionIdx === -1 && mark === "M") totalMission += 1;
@@ -405,9 +412,11 @@ function updateQuickStats() {
   });
 
   if (scanEl) scanEl.textContent = String(totalScan);
+  if (forgetEl) forgetEl.textContent = String(totalForget);
   if (permEl) permEl.textContent = String(totalPermission);
   if (missionEl) missionEl.textContent = String(totalMission);
 }
+
 
 
 
