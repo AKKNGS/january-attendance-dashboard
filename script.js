@@ -287,21 +287,30 @@ function renderUI(rows) {
 }
 
 /* Helper: find multiple header indexes */
-function findAllHeaderIndexes(keys) {
-  if (!Array.isArray(headerRow)) return [];
-  const H = headerRow.map((h) => String(h ?? "").trim().toUpperCase());
-  const idxs = [];
+function findHeaderIndex(keys) {
+  if (!Array.isArray(headerRow)) return -1;
 
-  keys.forEach((k) => {
-    const kk = String(k).trim().toUpperCase();
-    H.forEach((h, i) => {
-      if (h === kk || h.includes(kk)) idxs.push(i);
-    });
-  });
+  const H = headerRow.map((h) => norm(h));
 
-  // unique
-  return Array.from(new Set(idxs));
+  for (const k of keys) {
+    const kk = norm(k);
+
+    // exact
+    let idx = H.findIndex((h) => h === kk);
+    if (idx !== -1) return idx;
+
+    // contains
+    idx = H.findIndex((h) => h.includes(kk));
+    if (idx !== -1) return idx;
+
+    // no-spaces fallback
+    const kk2 = kk.replace(/\s+/g, "");
+    idx = H.findIndex((h) => h.replace(/\s+/g, "") === kk2 || h.replace(/\s+/g, "").includes(kk2));
+    if (idx !== -1) return idx;
+  }
+  return -1;
 }
+
 
 
 /* =========================================================
@@ -341,23 +350,35 @@ function sortByBestNameCol(asc = true) {
    Stats
    ========================================================= */
 function updateQuickStats() {
-  // Elements
   const rowsEl = document.getElementById("statRows");
   const scanEl = document.getElementById("statTotalScan");
   const permEl = document.getElementById("statTotalPermission");
+  const missionEl = document.getElementById("statTotalMission"); // from your HTML
 
-  // If you changed HTML to statTotalMission:
-  const missionEl =
-    document.getElementById("statTotalMission") ||
-    document.getElementById("statLateAbsent"); // fallback if you didn't change
-
-  // Rows
   const n = Array.isArray(filteredData) ? filteredData.length : 0;
   if (rowsEl) rowsEl.textContent = String(n);
 
-  // Column indexes
-  const scanIdx = findHeaderIndex(["TOTAL SCAN", "TOTALSCAN", "SCAN", "TOTAL"]);
-  const remarkIdx = findHeaderIndex(["REMARK", "STATUS", "NOTE", "COMMENT", "Q"]);
+  // ✅ English + Khmer header keywords (works for both daily & summary sheets)
+  const scanIdx = findHeaderIndex([
+    "TOTAL SCAN", "TOTALSCAN", "SCAN",
+    "សរុបស្កេន", "សរុប ស្កេន"
+  ]);
+
+  const permIdx = findHeaderIndex([
+    "TOTAL PERMISSION", "PERMISSION", "LEAVE",
+    "សរុបអនុញ្ញាត", "សរុប អនុញ្ញាត", "អនុញ្ញាត"
+  ]);
+
+  const missionIdx = findHeaderIndex([
+    "TOTAL MISSION", "MISSION",
+    "សរុបបេសកកម្ម", "សរុប បេសកកម្ម", "បេសកកម្ម"
+  ]);
+
+  // ✅ Daily sheets sometimes store P/M in Remark column
+  const remarkIdx = findHeaderIndex([
+    "REMARK", "STATUS", "NOTE", "Q",
+    "សម្គាល់", "ចំណាំ"
+  ]);
 
   let totalScan = 0;
   let totalPermission = 0;
@@ -366,29 +387,26 @@ function updateQuickStats() {
   (filteredData || []).forEach((r) => {
     const row = Array.isArray(r) ? r : [];
 
-    // Total Scan
+    // If summary columns exist, use them directly
     if (scanIdx !== -1) totalScan += toNumber(row[scanIdx]);
+    if (permIdx !== -1) totalPermission += toNumber(row[permIdx]);
+    if (missionIdx !== -1) totalMission += toNumber(row[missionIdx]);
 
-    // Permission / Mission (P/M in Remark)
-    if (remarkIdx !== -1) {
-      const mark = String(row[remarkIdx] ?? "").trim().toUpperCase();
-      if (mark === "P") totalPermission++;
-      if (mark === "M") totalMission++;
+    // Otherwise, fallback to Remark=P/M counting (daily sheets)
+    if (permIdx === -1 || missionIdx === -1) {
+      if (remarkIdx !== -1) {
+        const mark = String(row[remarkIdx] ?? "").trim().toUpperCase();
+        if (permIdx === -1 && mark === "P") totalPermission += 1;
+        if (missionIdx === -1 && mark === "M") totalMission += 1;
+      }
     }
   });
 
   if (scanEl) scanEl.textContent = String(totalScan);
   if (permEl) permEl.textContent = String(totalPermission);
-
-  // If you updated HTML to Total Mission:
-  if (missionEl) {
-    if (missionEl.id === "statLateAbsent") {
-      missionEl.textContent = `Mission: ${totalMission}`; // old label
-    } else {
-      missionEl.textContent = String(totalMission); // new label
-    }
-  }
+  if (missionEl) missionEl.textContent = String(totalMission);
 }
+
 
 
 
@@ -445,19 +463,17 @@ function findHeaderIndex(keys) {
 
 
 function toNumber(v) {
-  const s = String(v ?? "")
-    .trim()
-    .replace(/,/g, "")
-    .replace(/[^\d.-]/g, ""); // remove non-numeric
+  const s = String(v ?? "").trim().replace(/,/g, "").replace(/[^\d.-]/g, "");
   const n = Number(s);
   return Number.isFinite(n) ? n : 0;
 }
+
 
 
 function norm(str) {
   return String(str ?? "")
     .toUpperCase()
     .trim()
-    .replace(/\s+/g, " ")          // collapse spaces
-    .replace(/[^\w\s]/g, "");      // remove symbols like / - etc.
+    .replace(/\s+/g, " ")
+    .replace(/[^\w\u1780-\u17FF\s]/g, ""); // keep Khmer letters too
 }
