@@ -55,6 +55,11 @@ body{
   gap:10px;
   margin-top:12px;
 }
+
+@media (min-width: 1200px){
+  .stats-grid{ grid-template-columns: 1fr 1fr; }
+}
+
 .stat{
   background:#f8fafc;
   border:1px solid var(--border);
