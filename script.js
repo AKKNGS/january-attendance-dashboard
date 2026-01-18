@@ -341,38 +341,55 @@ function sortByBestNameCol(asc = true) {
    Stats
    ========================================================= */
 function updateQuickStats() {
+  // Elements
   const rowsEl = document.getElementById("statRows");
   const scanEl = document.getElementById("statTotalScan");
   const permEl = document.getElementById("statTotalPermission");
-  const laEl = document.getElementById("statLateAbsent");
 
-  if (rowsEl) rowsEl.textContent = String(filteredData.length);
+  // If you changed HTML to statTotalMission:
+  const missionEl =
+    document.getElementById("statTotalMission") ||
+    document.getElementById("statLateAbsent"); // fallback if you didn't change
 
-  const scanIdx = findHeaderIndex(["TOTAL SCAN", "SCAN", "TOTALSCAN"]);
-  const remarkIdx = findHeaderIndex(["REMARK", "NOTE", "STATUS", "Q"]);
+  // Rows
+  const n = Array.isArray(filteredData) ? filteredData.length : 0;
+  if (rowsEl) rowsEl.textContent = String(n);
+
+  // Column indexes
+  const scanIdx = findHeaderIndex(["TOTAL SCAN", "TOTALSCAN", "SCAN", "TOTAL"]);
+  const remarkIdx = findHeaderIndex(["REMARK", "STATUS", "NOTE", "COMMENT", "Q"]);
 
   let totalScan = 0;
   let totalPermission = 0;
   let totalMission = 0;
 
-  filteredData.forEach((r) => {
-    if (scanIdx !== -1) totalScan += toNumber((r || [])[scanIdx]);
+  (filteredData || []).forEach((r) => {
+    const row = Array.isArray(r) ? r : [];
 
+    // Total Scan
+    if (scanIdx !== -1) totalScan += toNumber(row[scanIdx]);
+
+    // Permission / Mission (P/M in Remark)
     if (remarkIdx !== -1) {
-      const mark = String((r || [])[remarkIdx] ?? "").trim().toUpperCase();
+      const mark = String(row[remarkIdx] ?? "").trim().toUpperCase();
       if (mark === "P") totalPermission++;
       if (mark === "M") totalMission++;
     }
   });
 
-  if (scanEl) scanEl.textContent = String(totalScan || 0);
-
-  // Show Permission in the existing box
+  if (scanEl) scanEl.textContent = String(totalScan);
   if (permEl) permEl.textContent = String(totalPermission);
 
-  // Use the Late/Absent box to show Mission if you want (or rename in HTML)
-  if (laEl) laEl.textContent = `Mission: ${totalMission}`;
+  // If you updated HTML to Total Mission:
+  if (missionEl) {
+    if (missionEl.id === "statLateAbsent") {
+      missionEl.textContent = `Mission: ${totalMission}`; // old label
+    } else {
+      missionEl.textContent = String(totalMission); // new label
+    }
+  }
 }
+
 
 
 /* =========================================================
@@ -402,17 +419,45 @@ function escapeHtml(str) {
 
 function findHeaderIndex(keys) {
   if (!Array.isArray(headerRow)) return -1;
-  const H = headerRow.map((h) => String(h ?? "").trim().toUpperCase());
+
+  const Hraw = headerRow.map((h) => String(h ?? ""));
+  const H = Hraw.map((h) => norm(h));
+
   for (const k of keys) {
-    const kk = String(k).trim().toUpperCase();
-    const idx = H.findIndex((h) => h === kk || h.includes(kk));
+    const kk = norm(k);
+
+    // exact match
+    let idx = H.findIndex((h) => h === kk);
+    if (idx !== -1) return idx;
+
+    // contains match
+    idx = H.findIndex((h) => h.includes(kk));
+    if (idx !== -1) return idx;
+
+    // also try match without spaces (TOTALSCAN)
+    const kk2 = kk.replace(/\s+/g, "");
+    idx = H.findIndex((h) => h.replace(/\s+/g, "") === kk2 || h.replace(/\s+/g, "").includes(kk2));
     if (idx !== -1) return idx;
   }
+
   return -1;
 }
 
+
 function toNumber(v) {
-  const s = String(v ?? "").replace(/,/g, "").trim();
+  const s = String(v ?? "")
+    .trim()
+    .replace(/,/g, "")
+    .replace(/[^\d.-]/g, ""); // remove non-numeric
   const n = Number(s);
   return Number.isFinite(n) ? n : 0;
+}
+
+
+function norm(str) {
+  return String(str ?? "")
+    .toUpperCase()
+    .trim()
+    .replace(/\s+/g, " ")          // collapse spaces
+    .replace(/[^\w\s]/g, "");      // remove symbols like / - etc.
 }
